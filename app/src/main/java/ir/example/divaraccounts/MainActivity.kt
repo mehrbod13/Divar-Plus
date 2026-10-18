@@ -110,7 +110,7 @@ class MainActivity : Activity() {
             text = "مدیریت اکانت‌های دیوار"
             textSize = 23f
             setTextColor(ink)
-            typeface = AradFont.bold(this@MainActivity)
+            AradFont.markBold(this)
             gravity = Gravity.RIGHT
         }
         root.addView(header, matchWrap())
@@ -189,7 +189,7 @@ class MainActivity : Activity() {
                     text = PhoneNumberFormatter.formatIranian(account.phone)
                     textSize = 18f
                     setTextColor(ink)
-                    typeface = AradFont.bold(this@MainActivity)
+                    AradFont.markBold(this)
                     gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
                 }, LinearLayout.LayoutParams(0, dp(36), 1f))
                 if (unreadCount > 0) {
@@ -342,6 +342,8 @@ class MainActivity : Activity() {
         val dialog = create()
         dialog.setOnShowListener {
             dialog.window?.decorView?.let { AradFont.apply(this@MainActivity, it) }
+            val titleId = resources.getIdentifier("alertTitle", "id", "android")
+            if (titleId != 0) dialog.findViewById<TextView>(titleId)?.let { AradFont.markBold(it) }
         }
         dialog.show()
         return dialog

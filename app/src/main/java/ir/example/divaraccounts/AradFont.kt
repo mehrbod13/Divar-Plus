@@ -43,13 +43,22 @@ object AradFont {
         }
     }
 
+    /**
+     * Marks a TextView as bold. The mark lives on the view itself, so it survives OEM font
+     * handling (e.g. Samsung One UI) that may wrap or replace the Typeface object and make
+     * identity/style checks unreliable.
+     */
+    fun markBold(view: TextView) {
+        view.setTag(R.id.arad_bold, true)
+        view.typeface = bold(view.context)
+    }
+
     fun apply(context: Context, view: View) {
         if (view is TextView) {
             val currentTypeface = view.typeface
             val style = currentTypeface?.style ?: Typeface.NORMAL
-            // Preserve an explicitly assigned bundled Arad Bold face even on devices that
-            // report a custom asset typeface's style flag inconsistently.
-            val useBold = currentTypeface === boldTypeface ||
+            val useBold = view.getTag(R.id.arad_bold) == true ||
+                currentTypeface === boldTypeface ||
                 (style and Typeface.BOLD) != 0 || view.paint.isFakeBoldText
             val useItalic = (style and Typeface.ITALIC) != 0
             val base = if (useBold) bold(context) else regular(context)
