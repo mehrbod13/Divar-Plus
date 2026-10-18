@@ -34,6 +34,7 @@ class MainActivity : Activity() {
     private var accountScrollY = 0
     private var unreadReceiverRegistered = false
     private var notificationPermissionRequestedThisLaunch = false
+    private var batteryPromptedThisLaunch = false
     private val unreadReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (::store.isInitialized && hasWindowFocus()) render()
@@ -67,7 +68,8 @@ class MainActivity : Activity() {
         if (::store.isInitialized) {
             render()
             NotificationScheduler.requestImmediateCheck(applicationContext)
-            maybeRequestNotificationPermission()
+            // Ask for one thing at a time: the battery prompt follows the notification permission.
+            if (!maybeRequestNotificationPermission()) maybePromptBatteryOptimization()
         }
     }
 
@@ -85,14 +87,33 @@ class MainActivity : Activity() {
         super.onSaveInstanceState(outState)
     }
 
-    private fun maybeRequestNotificationPermission() {
-        if (Build.VERSION.SDK_INT < 33) return
-        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+    /** Returns true when the system permission dialog was launched. */
+    private fun maybeRequestNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < 33) return false
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return false
         // Ask once on each fresh MainActivity launch while permission is missing.
         // The per-instance flag prevents repeated prompts when returning from WebActivity.
-        if (notificationPermissionRequestedThisLaunch) return
+        if (notificationPermissionRequestedThisLaunch) return false
         notificationPermissionRequestedThisLaunch = true
         requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 2201)
+        return true
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 2201) maybePromptBatteryOptimization()
+    }
+
+    /** Explains why, then sends the user to the system screen where the restriction can be lifted. */
+    private fun maybePromptBatteryOptimization() {
+        if (batteryPromptedThisLaunch || BatteryOptimization.isIgnoring(this) || isFinishing) return
+        batteryPromptedThisLaunch = true
+        AlertDialog.Builder(this)
+            .setTitle("فعال‌سازی اعلان‌های پایدار")
+            .setMessage("برای اینکه اعلان پیام‌ها در پس‌زمینه دیر نرسد یا قطع نشود، بهینه‌سازی باتری را برای این برنامه خاموش کنید. در صفحهٔ بعد «اجازه» را بزنید.")
+            .setNegativeButton("بعداً", null)
+            .setPositiveButton("باز کردن تنظیمات") { _, _ -> BatteryOptimization.openSettings(this) }
+            .showArad()
     }
 
     private fun supportsProfiles() = WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)
@@ -138,6 +159,17 @@ class MainActivity : Activity() {
                 setTextColor(muted)
                 gravity = Gravity.RIGHT
                 setPadding(0, dp(6), 0, 0)
+            }, matchWrap())
+        }
+
+        if (!BatteryOptimization.isIgnoring(this)) {
+            root.addView(TextView(this).apply {
+                text = "بهینه‌سازی باتری روشن است و ممکن است اعلان‌ها دیر برسند. برای رفع، اینجا را لمس کنید."
+                textSize = 12f
+                setTextColor(accent)
+                gravity = Gravity.RIGHT
+                setPadding(0, dp(8), 0, 0)
+                setOnClickListener { BatteryOptimization.openSettings(this@MainActivity) }
             }, matchWrap())
         }
 
