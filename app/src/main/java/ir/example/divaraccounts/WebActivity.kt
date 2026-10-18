@@ -36,8 +36,6 @@ class WebActivity : Activity() {
     private val openChatsTab by lazy { intent.getBooleanExtra(EXTRA_OPEN_CHATS, false) }
     private var loginButtonAutoOpened = false
     private var loginClickAttempts = 0
-    private var chatsTabAutoOpened = false
-    private var chatsClickAttempts = 0
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -156,11 +154,6 @@ class WebActivity : Activity() {
                     // First launch clicks only Divar's visible sign-in button; no credential is read.
                     view?.let { tryOpenOfficialLogin(it) }
                 }
-                val uri = android.net.Uri.parse(url.orEmpty())
-                if (openChatsTab && !chatsTabAutoOpened && isDivarUrl(url) &&
-                    uri.path.orEmpty().startsWith("/s/")) {
-                    view?.let { tryOpenChatsTab(it) }
-                }
             }
         }
         root.addView(webView, LinearLayout.LayoutParams(-1, 0, 1f))
@@ -168,8 +161,11 @@ class WebActivity : Activity() {
         SystemBarInsets.apply(root)
 
         if (savedInstanceState == null) {
-            if (startAtLogin) webView.loadUrl("https://divar.ir/my-divar")
-            else webView.loadUrl(CITY_HOME_URL)
+            when {
+                startAtLogin -> webView.loadUrl("https://divar.ir/my-divar")
+                openChatsTab -> webView.loadUrl(CHAT_URL)
+                else -> webView.loadUrl(CITY_HOME_URL)
+            }
         }
     }
 
@@ -265,31 +261,6 @@ class WebActivity : Activity() {
         }
     }
 
-    private fun tryOpenChatsTab(view: WebView) {
-        if (chatsTabAutoOpened || chatsClickAttempts >= 8 || isFinishing) return
-        chatsClickAttempts++
-        view.evaluateJavascript(
-            """(function(){
-                const nodes = Array.from(document.querySelectorAll('button,a,[role="button"],[aria-label],div,span'));
-                const target = nodes.find(e => {
-                    const label = ((e.innerText || e.textContent || '') + ' ' +
-                        (e.getAttribute('aria-label') || '')).replace(/\s+/g,' ').trim();
-                    return label.length < 32 && label.includes('چت و تماس');
-                });
-                if (target) { target.click(); return 'opened'; }
-                return 'not-found';
-            })();""".trimIndent()
-        ) { result ->
-            if (result?.contains("opened") == true) {
-                chatsTabAutoOpened = true
-            } else if (chatsClickAttempts < 8 && !isFinishing) {
-                mainHandler.postDelayed({
-                    if (::webView.isInitialized) tryOpenChatsTab(webView)
-                }, 500L)
-            }
-        }
-    }
-
     private fun isDivarUrl(url: String?): Boolean = try {
         val host = android.net.Uri.parse(url).host.orEmpty()
         host == "divar.ir" || host.endsWith(".divar.ir")
@@ -316,5 +287,6 @@ class WebActivity : Activity() {
         const val EXTRA_OPEN_CHATS = "open_chats"
         private const val FILE_CHOOSER_REQUEST = 4172
         private const val CITY_HOME_URL = "https://divar.ir/s/rasht"
+        private const val CHAT_URL = "https://divar.ir/chat/"
     }
 }

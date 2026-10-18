@@ -11,12 +11,13 @@ import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 object NotificationScheduler {
-    private const val PERIODIC_NAME = "divar_unread_hourly"
+    private const val LEGACY_PERIODIC_NAME = "divar_unread_hourly"
+    private const val PERIODIC_NAME = "divar_unread_periodic"
     private const val STARTUP_NAME = "divar_unread_startup"
 
+    // No battery constraint: a message notification that waits for a charged battery is not reliable.
     private fun periodicConstraints() = Constraints.Builder()
         .setRequiredNetworkType(NetworkType.CONNECTED)
-        .setRequiresBatteryNotLow(true)
         .build()
 
     // A one-off catch-up check should run as soon as connectivity returns, even if the battery is low.
@@ -25,9 +26,11 @@ object NotificationScheduler {
         .build()
 
     fun ensureScheduled(context: Context) {
-        val periodic = PeriodicWorkRequestBuilder<UnreadPollingWorker>(1, TimeUnit.HOURS)
+        // 15 minutes is the shortest period Android allows for background work.
+        val periodic = PeriodicWorkRequestBuilder<UnreadPollingWorker>(15, TimeUnit.MINUTES)
             .setConstraints(periodicConstraints())
             .build()
+        WorkManager.getInstance(context).cancelUniqueWork(LEGACY_PERIODIC_NAME)
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             PERIODIC_NAME,
             ExistingPeriodicWorkPolicy.KEEP,

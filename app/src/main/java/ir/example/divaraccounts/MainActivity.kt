@@ -179,7 +179,7 @@ class MainActivity : Activity() {
                     elevation = dp(2).toFloat()
                     setPadding(dp(16), dp(14), dp(16), dp(12))
                 }
-                val unreadCount = UnreadStateStore.count(this, account.id)
+                val hasUnread = UnreadStateStore.hasUnread(this, account.id)
                 val accountHeading = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -192,23 +192,30 @@ class MainActivity : Activity() {
                     AradFont.markBold(this)
                     gravity = Gravity.RIGHT or Gravity.CENTER_VERTICAL
                 }, LinearLayout.LayoutParams(0, dp(36), 1f))
-                if (unreadCount > 0) {
+                if (hasUnread) {
                     accountHeading.addView(TextView(this).apply {
-                        text = if (unreadCount > 99) "99+" else unreadCount.toString()
+                        text = "پیام جدید"
                         textSize = 12f
                         setTextColor(Color.WHITE)
                         gravity = Gravity.CENTER
-                        minWidth = dp(28)
+                        setPadding(dp(10), 0, dp(10), 0)
                         background = GradientDrawable().apply {
-                            shape = GradientDrawable.OVAL
+                            cornerRadius = dp(14).toFloat()
                             setColor(accent)
                         }
-                        contentDescription = "$unreadCount پیام خوانده‌نشده"
                     }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(28)).apply {
                         marginStart = dp(8)
                     })
                 }
                 card.addView(accountHeading, matchWrap())
+                if (UnreadStateStore.needsLogin(this, account.id)) {
+                    card.addView(TextView(this).apply {
+                        text = "نشست این حساب منقضی شده؛ برای دریافت اعلان دوباره وارد شوید."
+                        textSize = 12f
+                        setTextColor(Color.rgb(145, 85, 10))
+                        gravity = Gravity.RIGHT
+                    }, matchWrap())
+                }
                 val actions = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     layoutDirection = View.LAYOUT_DIRECTION_RTL
@@ -313,6 +320,7 @@ class MainActivity : Activity() {
             AlertDialog.Builder(this).setMessage("برای استفاده از چند حساب، برنامهٔ Android System WebView گوشی را به‌روز کنید.").setPositiveButton("باشه", null).showArad()
             return
         }
+        NotificationHelper.cancel(this, account.id)
         startActivity(Intent(this, WebActivity::class.java).apply {
             putExtra(WebActivity.EXTRA_PROFILE, account.profileName)
             putExtra(WebActivity.EXTRA_PHONE, PhoneNumberFormatter.formatIranian(account.phone))

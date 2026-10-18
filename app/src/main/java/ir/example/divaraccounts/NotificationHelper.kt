@@ -43,7 +43,7 @@ object NotificationHelper {
         return true
     }
 
-    fun showNewMessages(context: Context, account: DivarAccount, unreadCount: Int, newCount: Int) {
+    fun showNewMessage(context: Context, account: DivarAccount) {
         if (!areNotificationsEnabled(context)) return
 
         createChannel(context)
@@ -62,25 +62,19 @@ object NotificationHelper {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         val phoneLtr = "\u2066${PhoneNumberFormatter.formatIranian(account.phone)}\u2069"
-        val message = if (newCount == 1) "۱ پیام جدید" else "$newCount پیام جدید"
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("پیام جدید در دیوار")
-            .setContentText("$phoneLtr • $message • $unreadCount خوانده‌نشده")
-            .setStyle(NotificationCompat.BigTextStyle().bigText(
-                "$phoneLtr: $message. مجموع خوانده‌نشده: $unreadCount"
-            ))
+            .setContentText("$phoneLtr • پیام جدید دارید")
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            // The worker calls this only when the unread count increases. Let a later increase
-            // alert again even though it updates the same per-account notification ID.
+            // Only called when something new arrived, so every call should alert again.
             .setOnlyAlertOnce(false)
-            .setNumber(unreadCount)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
         try {
             val manager = NotificationManagerCompat.from(context)
-            manager.cancel(account.id.hashCode()) // Remove a notification left by older app versions.
             manager.notify(account.id, 0, notification)
         } catch (_: SecurityException) {
             // Permission may have been revoked between the check and notify.
