@@ -192,7 +192,6 @@ class WebActivity : Activity() {
         handleWebBack()
     }
 
-    /** On the sign-in/account screen, back goes to Divar's Rasht home instead of the login shell. */
     private fun handleWebBack() {
         if (!::webView.isInitialized) {
             finish()
@@ -286,7 +285,7 @@ class WebActivity : Activity() {
         const val EXTRA_START_AT_LOGIN = "start_at_login"
         const val EXTRA_OPEN_CHATS = "open_chats"
         private const val FILE_CHOOSER_REQUEST = 4172
-        private const val CITY_HOME_URL = "https://divar.ir/s/rasht"
+        private const val CITY_HOME_URL = "https://divar.ir/s/iran"
         private const val CHAT_URL = "https://divar.ir/chat/"
     }
 }
