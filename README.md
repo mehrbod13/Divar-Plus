@@ -8,8 +8,7 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-100%25-7F52FF?logo=kotlin&logoColor=white)
 ![Version](https://img.shields.io/badge/version-1.0.0-be524b)
 
-[⬇️ دانلود آخرین نسخه](../../releases/latest)
-
+[⬇️ دانلود آخرین نسخه](../../releases/download/latest/divar-plus.apk)
 </div>
 
 <div dir="rtl" align="right">
